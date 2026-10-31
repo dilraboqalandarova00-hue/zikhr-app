@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Salovat va Zikr Timer</title>
+    <style>
+        :root {
+            --primary: #0f4c3a; /* Islomiy yashil */
+            --secondary: #d4af37; /* Tilla rang */
+            --bg-color: #f4f6f5;
+            --text-color: #333;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: var(--bg-color); display: flex; flex-direction: column; align-items: center; min-height: 100vh; touch-action: manipulation; }
+        .header { background-color: var(--primary); width: 100%; padding: 20px; text-align: center; color: var(--secondary); box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-bottom: 3px solid var(--secondary); }
+        .header h1 { font-size: 1.5rem; }
+        .container { flex: 1; width: 100%; max-width: 500px; padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 20px; }
+        select { width: 100%; padding: 15px; font-size: 1.1rem; border: 2px solid var(--primary); border-radius: 10px; background-color: white; color: var(--primary); font-weight: bold; outline: none; appearance: none; text-align: center; }
+        .counter-display { font-size: 5rem; font-weight: bold; color: var(--primary); margin: 20px 0; font-variant-numeric: tabular-nums; text-shadow: 2px 2px 4px rgba(0,0,0,0.1); }
+        .tap-btn { width: 220px; height: 220px; border-radius: 50%; background: radial-gradient(circle, var(--primary) 0%, #0a3629 100%); color: var(--secondary); font-size: 2rem; font-weight: bold; border: 8px solid var(--secondary); cursor: pointer; box-shadow: 0 10px 20px rgba(0,0,0,0.3); transition: transform 0.1s; display: flex; justify-content: center; align-items: center; user-select: none; -webkit-tap-highlight-color: transparent; }
+        .tap-btn:active { transform: scale(0.95); box-shadow: 0 5px 10px rgba(0,0,0,0.2); }
+        .controls { display: flex; gap: 10px; width: 100%; justify-content: space-between; }
+        button.btn { flex: 1; padding: 15px; font-size: 1rem; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .btn-reset { background-color: #c0392b; }
+        .btn-timer { background-color: #2980b9; }
+        .timer-display { font-size: 1.5rem; color: #c0392b; font-weight: bold; display: none; margin-top: -10px; }
+        .timer-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); justify-content: center; align-items: center; }
+        .timer-content { background: white; padding: 25px; border-radius: 15px; text-align: center; width: 90%; max-width: 350px; }
+        .timer-content h2 { color: var(--primary); margin-bottom: 20px; }
+        .timer-options { display: flex; flex-direction: column; gap: 10px; }
+        .timer-options button { padding: 12px; font-size: 1.1rem; border: 2px solid var(--primary); background: white; color: var(--primary); border-radius: 8px; font-weight: bold; cursor: pointer; }
+        .timer-options button:hover { background: var(--primary); color: white; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>Salovat va Zikr</h1>
+    </div>
+
+    <div class="container">
+        <select id="zikrSelect" onchange="changeZikr()"></select>
+
+        <div class="timer-display" id="timerDisplay">00:00</div>
+        
+        <div class="counter-display" id="counter">0</div>
+        
+        <div class="tap-btn" id="tapBtn" onclick="increment()">BOSING</div>
+
+        <div class="controls">
+            <button class="btn btn-reset" onclick="resetCounter()">Nollash</button>
+            <button class="btn btn-timer" onclick="openTimer()">Taymer</button>
+        </div>
+    </div>
+
+    <!-- Timer Modal -->
+    <div class="timer-modal" id="timerModal">
+        <div class="timer-content">
+            <h2>Taymerni tanlang</h2>
+            <div class="timer-options">
+                <button onclick="startTimer(1)">1 Daqiqa</button>
+                <button onclick="startTimer(5)">5 Daqiqa</button>
+                <button onclick="startTimer(10)">10 Daqiqa</button>
+                <button onclick="startTimer(30)">30 Daqiqa</button>
+                <button onclick="closeTimer()" style="background: #c0392b; color: white; border:none; margin-top: 10px;">Bekor qilish</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const zikrSelect = document.getElementById('zikrSelect');
+        const counterDisplay = document.getElementById('counter');
+        const timerDisplay = document.getElementById('timerDisplay');
+        const timerModal = document.getElementById('timerModal');
+        
+        let count = 0;
+        let currentZikr = 'zikr_1';
+        let timerInterval;
+
+        // Asosiy zikrlar ro'yxati
+        const defaultZikrs = [
+            "Subhanalloh",
+            "Alhamdulillah",
+            "Allohu Akbar",
+            "La ilaha illalloh",
+            "Astaghfirulloh",
+            "Subhanallohi va bihamdihi",
+            "Subhanallohil 'Aziym",
+            "La hawla wa la quwwata illa billah",
+            "Sollallohu 'alayhi vasallam",
+            "Allohumma solli 'ala Muhammad"
+        ];
+
+        // 100 ta zikrni ro'yxatga qo'shish
+        function populateZikrs() {
+            for (let i = 0; i < 100; i++) {
+                const option = document.createElement('option');
+                option.value = 'zikr_' + (i + 1);
+                // Dastlabki 10 tasini haqiqiy ismlari bilan, qolganini raqamlangan holda ko'rsatish
+                if(i < defaultZikrs.length) {
+                    option.textContent = (i + 1) + ". " + defaultZikrs[i];
+                } else {
+                    option.textContent = (i + 1) + ". Salovat " + (i + 1);
+                }
+                zikrSelect.appendChild(option);
+            }
+        }
+
+        function loadData() {
+            currentZikr = zikrSelect.value;
+            let savedCount = localStorage.getItem(currentZikr);
+            count = savedCount ? parseInt(savedCount) : 0;
+            updateDisplay();
+        }
+
+        function changeZikr() {
+            loadData();
+        }
+
+        function increment() {
+            count++;
+            localStorage.setItem(currentZikr, count);
+            updateDisplay();
+            
+            // Vibratsiya (Agar telefonda qo'llab-quvvatlasa)
+            if (navigator.vibrate) {
+                navigator.vibrate(50);
+            }
+        }
+
+        function resetCounter() {
+            if(confirm("Ushbu zikr hisobini nollashni xohlaysizmi?")) {
+                count = 0;
+                localStorage.setItem(currentZikr, count);
+                updateDisplay();
+            }
+        }
+
+        function updateDisplay() {
+            counterDisplay.textContent = count;
+        }
+
+        // Taymer funksiyalari
+        function openTimer() {
+            timerModal.style.display = 'flex';
+        }
+
+        function closeTimer() {
+            timerModal.style.display = 'none';
+        }
+
+        function startTimer(minutes) {
+            closeTimer();
+            clearInterval(timerInterval);
+            
+            let time = minutes * 60;
+            timerDisplay.style.display = 'block';
+            
+            timerInterval = setInterval(() => {
+                let m = Math.floor(time / 60);
+                let s = time % 60;
+                
+                m = m < 10 ? '0' + m : m;
+                s = s < 10 ? '0' + s : s;
+                
+                timerDisplay.textContent = m + ':' + s;
+                
+                if (time <= 0) {
+                    clearInterval(timerInterval);
+                    timerDisplay.textContent = "Vaqt tugadi!";
+                    if (navigator.vibrate) navigator.vibrate([500, 200, 500]); // Uzun vibratsiya
+                    setTimeout(() => { timerDisplay.style.display = 'none'; }, 3000);
+                }
+                time--;
+            }, 1000);
+        }
+
+        // Ilova ishga tushganda bajariladigan funksiyalar
+        populateZikrs();
+        loadData();
+    </script>
+</body>
+</html>
