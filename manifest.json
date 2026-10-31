@@ -1,0 +1,23 @@
+{
+  "background_color": "#dde6d5",
+  "dir": "ltr",
+  "display": "standalone",
+  "name": "Zikr App",
+  "orientation": "portrait",
+  "scope": "/",
+  "short_name": "Zikr App",
+  "start_url": "/",
+  "theme_color": "#186136",
+  "id": "zikr-app",
+  "description": "Ushbu ilovada 100 dan ortiq zikrlar va ibodatlar uchun islomiy taymer mavjud",
+  "lang": "uz",
+  "categories": [
+    "education",
+    "lifestyle"
+  ]
+}
+```[cite: 14]
+
+5. Sahifani pastga tushirib, yashil rangli **"Commit changes"** tugmasini bosing.
+
+Ana shundan keyin yana o'sha **PWABuilder.com** saytiga kiring, GitHub havolangizni qaytadan kiriting. Endi xizmat manifest faylini o'zi avtomatik topadi va **"Package For Stores"** tugmasi yashil/binafsha rangda (faol holatda) yonadi! Unga bosib Android uchun tayyor `.aab` faylni bemalol yuklab olasiz.
